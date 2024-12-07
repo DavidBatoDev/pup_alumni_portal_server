@@ -1,0 +1,5 @@
+[phases.build]
+commands = [
+    "chmod -R 755 node_modules/.bin",
+    "npm run build"
+]
