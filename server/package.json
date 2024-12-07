@@ -3,7 +3,8 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "npx vite build"
+        "prebuild": "chmod -R 755 node_modules/.bin",
+        "build": "vite build"
     },
     "devDependencies": {
         "axios": "^1.7.4",
