@@ -177,6 +177,21 @@ class EventController extends Controller
     
         // Delete the event if there are no registered alumni
         $event->delete();
+
+        // delete all notifications for the event
+        $notification = Notification::where('type', 'eventInvitation')
+            ->where('link', '/events/' . $event->event_id)
+            ->first();
+
+        if ($notification) {
+            $notification->delete();
+        }
+
+        // $photos = EventPhoto::where('event_id', $event->event_id)->get();
+        // foreach ($photos as $photo) {
+        //     \Storage::disk('public')->delete($photo->photo_path);
+        //     $photo->delete();
+        // }
     
         return response()->json(['success' => true, 'message' => 'Event deleted successfully.'], 200);
     }

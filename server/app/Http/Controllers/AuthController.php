@@ -30,8 +30,6 @@ use App\Models\EventPhoto;
 use App\Models\PostEventPhoto;
 
 
-
-
 class AuthController extends Controller
 {
 
