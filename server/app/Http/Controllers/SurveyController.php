@@ -109,7 +109,7 @@ class SurveyController extends Controller
                 ]);
             }
 
-            broadcast(new SurveyCreated($notification, $survey))->toOthers();
+            // broadcast(new SurveyCreated($notification, $survey))->toOthers();
     
             return response()->json(['message' => 'Survey with sections and questions created successfully.', 'survey' => $survey], 201);
     
