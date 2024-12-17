@@ -8,6 +8,7 @@ use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\DiscussionController;
 use App\Http\Controllers\VerificationController;
+use App\Http\Controllers\QuickSurveyResponseController;
 use App\Mail\TestEmail;
 
 // route hello world
@@ -59,14 +60,16 @@ Route::get('/graduates/check-verification', [VerificationController::class, 'che
 
 // Protected alumni routes (Require JWT Authentication)
 Route::group(['middleware' => ['jwt.verify']], function () {
-    // route for refreshin the token 
+
+    // Route to mark a a quick notification as read
+    Route::get('/quick-survey/status', [QuickSurveyResponseController::class, 'checkStatus']);
+    Route::post('/quick-survey/submit', [QuickSurveyResponseController::class, 'submitQuickSurvey']);
 
     Route::get('/profile', [AlumniController::class, 'profile']);
     Route::post('/update-profile', [AlumniController::class, 'updateProfile']);
 
     // Route to get notifications for the authenticated alumni
     Route::get('/notifications', [AlumniController::class, 'getNotifications'])->middleware('jwt.verify');
-
 
     // Routes for managing employment and education history
     Route::post('/add-employment-history', [AlumniController::class, 'addEmploymentHistory']);
