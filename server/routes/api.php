@@ -11,6 +11,7 @@ use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\QuickSurveyResponseController;
 use App\Mail\TestEmail;
 
+
 // route hello world
 Route::get('/hello', function () {
     return response()->json(['message' => 'Hello World!']);

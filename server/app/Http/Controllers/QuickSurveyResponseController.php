@@ -4,19 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Survey; 
-use App\Models\SurveyQuestion;
-use App\Models\SurveyOption; 
-use App\Models\FeedbackResponse; 
-use App\Models\QuestionResponse; 
-use App\Models\SurveySection;
-use App\Models\Alumni;
-use App\Models\Notification;
-use App\Models\AlumniNotification;
-use App\Events\SurveyCreated;
+use App\Models\QuickSurveyResponse;
 
 class QuickSurveyResponseController extends Controller
 {
+    /**
+     * Submit quick survey response
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function submitQuickSurvey(Request $request)
     {
         $request->validate([
@@ -26,7 +22,7 @@ class QuickSurveyResponseController extends Controller
         ]);
 
         // Use the default guard
-        $alumniId = Auth::id();
+        $alumniId = Auth::guard('api')->id();
 
 
         if (!$alumniId) {
@@ -45,6 +41,12 @@ class QuickSurveyResponseController extends Controller
         return response()->json(['message' => 'Quick survey submitted successfully!'], 200);
     }
 
+
+    /**
+     * See quick survey response
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function checkStatus()
     {
         $alumniId = Auth::id();
