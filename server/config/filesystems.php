@@ -33,15 +33,16 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'throw' => false, // This key is fine
+            'throw' => false, // Keeps errors from breaking app
         ],
 
+        // Updated public disk configuration
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'root' => public_path('storage'), // Files stored directly in public/storage
+            'url' => env('APP_URL').'/storage', // Accessible URL
             'visibility' => 'public',
-            'throw' => false, // This key is fine
+            'throw' => false,
         ],
 
         's3' => [
@@ -53,7 +54,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false, // This key is fine
+            'throw' => false,
         ],
 
     ],
@@ -70,7 +71,8 @@ return [
     */
 
     'links' => [
-        public_path('storage') => storage_path('app/public'),
+        // No need for this if you use direct public_path('storage')
+        public_path('storage') => public_path('storage'),
     ],
 
 ];
