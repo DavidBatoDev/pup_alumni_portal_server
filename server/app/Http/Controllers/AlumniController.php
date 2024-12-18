@@ -10,6 +10,7 @@ use App\Models\EducationHistory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class AlumniController extends Controller
 {
@@ -64,20 +65,32 @@ class AlumniController extends Controller
             'linkedin_profile' => 'nullable|url|max:255',
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             'password' => 'nullable|string|min:8|confirmed',
+            // 'delete_profile_picture' => 'nullable|boolean'
         ]);
 
-
-        if ($request->hasFile('profile_picture')) {
-            $path = $request->file('profile_picture')->store('profile_pictures', 'public'); // Store in public disk
-            $alumni->profile_picture = $path; // Save the path to the database
-        }
-    
         // If validation fails, return errors
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => $validator->errors()
             ], 422);
+        }
+
+        // Handle profile picture deletion
+        if ($request->delete_profile_picture) {
+            if ($alumni->profile_picture) {
+                Storage::disk('public')->delete($alumni->profile_picture);
+            }
+            $alumni->profile_picture = 'profile_pictures/default-profile.jpg'; // Clear profile picture path
+        }
+
+        // Handle new profile picture upload
+        if ($request->hasFile('profile_picture')) {
+            if ($alumni->profile_picture) {
+                Storage::disk('public')->delete($alumni->profile_picture); // Delete old picture
+            }
+            $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+            $alumni->profile_picture = $path;
         }
     
         // Update only the fields that are provided

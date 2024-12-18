@@ -123,7 +123,7 @@ Route::group(['middleware' => ['jwt.verify']], function () {
     Route::get('/threads/{id}', [DiscussionController::class, 'getThread']);
 
     // Update a thread
-    Route::put('/threads/{id}', [DiscussionController::class, 'updateThread']);
+    Route::post('/threads/{id}', [DiscussionController::class, 'updateThread']);
 
     // Delete a thread
     Route::delete('/threads/{id}', [DiscussionController::class, 'deleteThread']);

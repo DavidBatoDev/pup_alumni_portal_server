@@ -404,7 +404,7 @@ class AuthController extends Controller
             'linkedin_profile' => $request->linkedin_profile,
             'student_number' => $request->student_number,
             
-            'profile_picture' => 'profile_pictures/default-profile.png', // Default profile picture
+            'profile_picture' => 'profile_pictures/default-profile.jpg', // Default profile picture
         ]);
     
         // Create the corresponding address record

@@ -10,6 +10,7 @@ use App\Models\ThreadTag;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Models\ThreadImage;
+use Illuminate\Support\Facades\Log;
 
 
 class DiscussionController extends Controller
@@ -487,9 +488,11 @@ class DiscussionController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string|max:255', // Validate tags as strings
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20048', // Validate multiple images
-            'existing_images' => 'nullable|array', // Images to keep
-            'images_to_delete' => 'nullable|array', // Images to delete
+            'existing_images' => 'nullable|array', // IDs of images to keep
+            'images_to_delete' => 'nullable|array', // IDs of images to delete
         ]);
+
+        Log::info($request->all());
     
         if ($validator->fails()) {
             return response()->json([
@@ -497,9 +500,11 @@ class DiscussionController extends Controller
                 'message' => $validator->errors(),
             ], 422);
         }
-    
+        
+        Log::info('Validation Successful.');
+
         try {
-            $alumni = Auth::user(); // Get authenticated alumni
+            $alumni = Auth::user(); // Get authenticated user
             $thread = Thread::findOrFail($id); // Find the thread
     
             // Check if the authenticated user is the author
@@ -509,52 +514,44 @@ class DiscussionController extends Controller
                     'message' => 'Unauthorized.',
                 ], 403);
             }
+
+            Log::info('Updating Thread Data: ', $request->only(['title', 'description']));
+
     
             // Update thread title and description
             $thread->update($request->only(['title', 'description']));
     
             // Process tags
             if (isset($request->tags)) {
-                $tagIds = []; // Array to store tag IDs
-    
+                $tagIds = [];
                 foreach ($request->tags as $tagName) {
-                    // Check if the tag already exists
-                    $tag = Tag::where('name', $tagName)->first();
-    
-                    if (!$tag) {
-                        // If the tag doesn't exist, create it
-                        $tag = Tag::create(['name' => $tagName]);
-                    }
-    
-                    // Add the tag ID to the array
+                    $tag = Tag::firstOrCreate(['name' => $tagName]);
                     $tagIds[] = $tag->tag_id;
                 }
-    
-                // Sync the tags with the thread
                 $thread->tags()->sync($tagIds);
             }
     
-            // Handle images to delete
+            // **Handle Images to Delete**
             if ($request->has('images_to_delete')) {
                 $imagesToDelete = $request->input('images_to_delete');
                 foreach ($imagesToDelete as $imageId) {
                     $image = ThreadImage::find($imageId);
                     if ($image) {
-                        // Delete the image from storage
+                        // Delete the image file from storage
                         \Storage::disk('public')->delete($image->image_path);
-    
-                        // Delete the record from the database
+                        // Delete the image record from the database
                         $image->delete();
                     }
                 }
             }
     
-            // Handle new images if they are uploaded
+            // **Handle New Image Uploads**
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
+                    // Store the image in 'thread_images' folder under 'public' disk
                     $path = $image->store('thread_images', 'public');
     
-                    // Save the new image in the database
+                    // Create new image record in the database
                     ThreadImage::create([
                         'thread_id' => $thread->thread_id,
                         'image_path' => $path,
@@ -562,21 +559,18 @@ class DiscussionController extends Controller
                 }
             }
     
-            // Fetch the updated thread with all necessary relationships
-            $updatedThread = Thread::with([
-                'tags',
-                'images',
-            ])
-            ->withCount([
-                'votes as upvotes' => function ($query) {
-                    $query->where('vote', 'upvote');
-                },
-                'votes as downvotes' => function ($query) {
-                    $query->where('vote', 'downvote');
-                }
-            ])
-            ->findOrFail($id);
-   
+            // Fetch updated thread data with related images and tags
+            $updatedThread = Thread::with(['tags', 'images'])
+                ->withCount([
+                    'votes as upvotes' => function ($query) {
+                        $query->where('vote', 'upvote');
+                    },
+                    'votes as downvotes' => function ($query) {
+                        $query->where('vote', 'downvote');
+                    },
+                ])
+                ->findOrFail($id);
+    
             $threadDetails = [
                 'thread_id' => $updatedThread->thread_id,
                 'title' => $updatedThread->title,
@@ -613,6 +607,7 @@ class DiscussionController extends Controller
                 'message' => 'Thread updated successfully.',
                 'data' => $threadDetails,
             ], 200);
+    
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -620,7 +615,8 @@ class DiscussionController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
-    }    
+    }
+    
 
     /**
      * Delete a thread.
