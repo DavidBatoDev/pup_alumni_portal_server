@@ -78,7 +78,7 @@ class AlumniController extends Controller
 
         // Handle profile picture deletion
         if ($request->delete_profile_picture) {
-            if ($alumni->profile_picture) {
+            if ($alumni->profile_picture && $alumni->profile_picture !== 'profile_pictures/default-profile.jpg') {
                 Storage::disk('public')->delete($alumni->profile_picture);
             }
             $alumni->profile_picture = 'profile_pictures/default-profile.jpg'; // Clear profile picture path
@@ -86,7 +86,7 @@ class AlumniController extends Controller
 
         // Handle new profile picture upload
         if ($request->hasFile('profile_picture')) {
-            if ($alumni->profile_picture) {
+            if ($alumni->profile_picture && $alumni->profile_picture !== 'profile_pictures/default-profile.jpg') {
                 Storage::disk('public')->delete($alumni->profile_picture); // Delete old picture
             }
             $path = $request->file('profile_picture')->store('profile_pictures', 'public');

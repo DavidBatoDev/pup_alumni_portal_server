@@ -492,7 +492,6 @@ class DiscussionController extends Controller
             'images_to_delete' => 'nullable|array', // IDs of images to delete
         ]);
 
-        Log::info($request->all());
     
         if ($validator->fails()) {
             return response()->json([
@@ -501,7 +500,6 @@ class DiscussionController extends Controller
             ], 422);
         }
         
-        Log::info('Validation Successful.');
 
         try {
             $alumni = Auth::user(); // Get authenticated user

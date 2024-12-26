@@ -370,7 +370,7 @@ class AuthController extends Controller
                 'email' => 'required|string|email|max:255|unique:alumni',
                 'password' => 'required|string|min:6|confirmed',
                 'graduation_year' => 'required|integer',
-                'degree' => 'required|string|max:255',
+                // 'degree' => 'required|string|max:255',
                 'major' => 'required|string|max:255',
                 'student_number' => 'required|string|unique:alumni|max:255',
     
@@ -397,7 +397,7 @@ class AuthController extends Controller
             'date_of_birth' => $request->date_of_birth,
             'gender' => $request->gender,
             'graduation_year' => $request->graduation_year,
-            'degree' => $request->degree,
+            'degree' => 'Masteral Degree',
             'major' => $request->major,
             'current_job_title' => $request->current_job_title,
             'current_employer' => $request->current_employer,

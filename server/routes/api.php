@@ -10,12 +10,16 @@ use App\Http\Controllers\DiscussionController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\QuickSurveyResponseController;
 use App\Mail\TestEmail;
+use App\Http\Controllers\AlumniEmailController;
 
 
 // route hello world
 Route::get('/hello', function () {
     return response()->json(['message' => 'Hello World!']);
 });
+
+// route for sending invitatation
+Route::post('/send-alumni-email', [AlumniEmailController::class, 'sendEmailToAlumni']);
 
 // Authentication routes for alumni
 Route::post('login', [AuthController::class, 'login']);
@@ -164,6 +168,14 @@ Route::group(['middleware' => ['jwt.verify']], function () {
 
     // Admin-specific route to unend an event
     Route::put('/admin/event/{eventId}/unend', [EventController::class, 'unendEvent']);
+    
+    // all responses of the specific survey
+    Route::get('/admin/survey/{surveyId}/all-responses', [SurveyController::class, 'getAllResponsesWithAlumni'])
+        ->name('survey.responses');
+    
+    // Admin-specific route to get specific alumni and survey response
+    Route::get('/admin/response/{responseId}/details', [SurveyController::class, 'getSurveyQuestionsAndAnswersByResponseId'])
+    ->name('response.details');
 
 
     // Admin-specific route to get registered alumni for a specific event

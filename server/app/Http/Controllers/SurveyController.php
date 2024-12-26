@@ -418,6 +418,14 @@ class SurveyController extends Controller
             if (!empty($unansweredQuestions)) {
                 return response()->json(['error' => 'All questions must be answered.'], 422);
             }
+
+            // Retrieve and sort existing responses by response_id
+            $existingResponses = FeedbackResponse::where('survey_id', $surveyId)
+                ->orderBy('response_id', 'asc')
+                ->get();
+
+            // Count the number of existing responses
+            $responseCount = $existingResponses->count();
     
             // Create a feedback response record
             $feedbackResponse = FeedbackResponse::create([
@@ -456,7 +464,6 @@ class SurveyController extends Controller
                 ->where('link', $expectedLink)
                 ->first();
 
-            \Log::info('Notification: ' . $notification);
 
             if ($notification) {
                 $alumniNotification = AlumniNotification::where('alumni_id', $alumniId)
@@ -471,7 +478,10 @@ class SurveyController extends Controller
                 \Log::info("No matching notification found for survey ID: " . $surveyId);
             }
 
-            return response()->json(['message' => 'Survey responses submitted successfully.'], 201);
+            return response()->json([
+                'message' => 'Survey responses submitted successfully.',
+                'order' => $responseCount + 1
+            ], 201);
     
         } catch (\Exception $e) {
             \Log::error('Error in submitSurveyResponse: ' . $e->getMessage());
@@ -490,7 +500,7 @@ class SurveyController extends Controller
             // Fetch the survey with sections, questions, and alumni responses
             $survey = Survey::with([
                 'sections.questions',  // Fetch sections with questions
-                'feedbackResponses.alumni:alumni_id,email,first_name,last_name', // Fetch alumni details
+                'feedbackResponses.alumni:alumni_id,email,first_name,last_name,gender,major,graduation_year', // Fetch alumni details
                 'feedbackResponses.questionResponses.surveyOption'  // Fetch question responses with options
             ])->where('survey_id', $surveyId)->first();
     
@@ -521,6 +531,9 @@ class SurveyController extends Controller
                                         'alumni_email' => $feedbackResponse->alumni->email,
                                         'alumni_first_name' => $feedbackResponse->alumni->first_name,
                                         'alumni_last_name' => $feedbackResponse->alumni->last_name,
+                                        'gender' => $feedbackResponse->alumni->gender,
+                                        'graduation_year' => $feedbackResponse->alumni->graduation_year,
+                                        'major' => $feedbackResponse->alumni->major,
                                         'response_text' => $questionResponse ? $questionResponse->response_text : null,
                                         'option_text' => optional($questionResponse->surveyOption)->option_text,
                                         'option_value' => optional($questionResponse->surveyOption)->option_value,
@@ -544,4 +557,128 @@ class SurveyController extends Controller
             ], 500);
         }
     }
+    
+    
+        public function getAllResponsesWithAlumni()
+        {
+            try {
+                // Fetch all feedback responses with alumni details
+                $responses = FeedbackResponse::with('alumni:alumni_id,email,first_name,last_name')
+                    ->select('response_id', 'alumni_id', 'response_date', 'created_at')
+                    ->get();
+    
+                // Check if there are any responses
+                if ($responses->isEmpty()) {
+                    return response()->json(['message' => 'No responses found'], 404);
+                }
+    
+                // Format the response data
+                $data = $responses->map(function ($response) {
+                    return [
+                        'response_id' => $response->response_id,
+                        'response_date' => $response->response_date,
+                        'alumni' => [
+                            'alumni_id' => $response->alumni->alumni_id,
+                            'alumni_name' => $response->alumni->first_name. ' ' . $response->alumni->last_name,
+                            'alumni_email' => $response->alumni->email,
+                            
+                        ],
+                        "created_at" => $response->created_at
+                    ];
+                });
+    
+                return response()->json(['success' => true, 'data' => $data], 200);
+            } catch (\Exception $e) {
+                \Log::error('Error in getAllResponsesWithAlumni: ' . $e->getMessage());
+    
+                return response()->json([
+                    'error' => 'An error occurred while fetching the responses.',
+                    'message' => $e->getMessage(),
+                ], 500);
+            }
+        }
+    
+    /**
+ * Get all questions of a specific survey and the answers of a specific alumni using response_id.
+ *
+ * @param int $responseId
+ * @return \Illuminate\Http\JsonResponse
+ */
+    public function getSurveyQuestionsAndAnswersByResponseId($responseId)
+    {
+        try {
+            // Fetch the feedback response with the survey, alumni, and question responses
+            $feedbackResponse = FeedbackResponse::with([
+                'survey.sections.questions.options', // Survey sections, questions, and options
+                'questionResponses.surveyOption',   // Question responses with selected options
+                'alumni:alumni_id,first_name,last_name,email', // Alumni details
+            ])->where('response_id', $responseId)->first();
+
+            // Check if the feedback response exists
+            if (!$feedbackResponse) {
+                return response()->json(['error' => 'Feedback response not found'], 404);
+            }
+
+            // Prepare the response data
+            $survey = $feedbackResponse->survey;
+
+            $data = [
+                'survey_id' => $survey->survey_id,
+                'title' => $survey->title,
+                'description' => $survey->description,
+                'alumni' => [
+                    'alumni_id' => $feedbackResponse->alumni->alumni_id,
+                    'first_name' => $feedbackResponse->alumni->first_name,
+                    'last_name' => $feedbackResponse->alumni->last_name,
+                    'email' => $feedbackResponse->alumni->email,
+                ],
+                'sections' => $survey->sections->map(function ($section) use ($feedbackResponse) {
+                    return [
+                        'section_id' => $section->section_id,
+                        'section_title' => $section->section_title,
+                        'section_description' => $section->section_description,
+                        'questions' => $section->questions->map(function ($question) use ($feedbackResponse) {
+                            $questionResponse = $feedbackResponse->questionResponses
+                                ->firstWhere('question_id', $question->question_id);
+
+                            return [
+                                'question_id' => $question->question_id,
+                                'question_text' => $question->question_text,
+                                'question_type' => $question->question_type,
+                                'is_required' => $question->is_required,
+                                'options' => $question->options->map(function ($option) {
+                                    return [
+                                        'option_id' => $option->option_id,
+                                        'option_text' => $option->option_text,
+                                        'option_value' => $option->option_value,
+                                        'is_other_option' => $option->is_other_option,
+                                    ];
+                                }),
+                                'response' => $questionResponse ? [
+                                    'response_text' => $questionResponse->response_text,
+                                    'selected_option' => $questionResponse->surveyOption ? [
+                                        'option_id' => $questionResponse->surveyOption->option_id,
+                                        'option_text' => $questionResponse->surveyOption->option_text,
+                                        'option_value' => $questionResponse->surveyOption->option_value,
+                                    ] : null,
+                                ] : null,
+                            ];
+                        }),
+                    ];
+                }),
+            ];
+
+            return response()->json(['success' => true, 'data' => $data], 200);
+        } catch (\Exception $e) {
+            \Log::error('Error in getSurveyQuestionsAndAnswersByResponseId: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => 'An error occurred while fetching the survey questions and answers.',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }      
+    
+    
+    
 }
