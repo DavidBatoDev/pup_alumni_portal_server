@@ -500,7 +500,7 @@ class SurveyController extends Controller
             // Fetch the survey with sections, questions, and alumni responses
             $survey = Survey::with([
                 'sections.questions',  // Fetch sections with questions
-                'feedbackResponses.alumni:alumni_id,email,first_name,last_name,gender,major,graduation_year', // Fetch alumni details
+                'feedbackResponses.alumni:alumni_id,email,first_name,last_name,gender,major,graduation_year,date_of_birth', // Fetch alumni details
                 'feedbackResponses.questionResponses.surveyOption'  // Fetch question responses with options
             ])->where('survey_id', $surveyId)->first();
     
@@ -533,6 +533,7 @@ class SurveyController extends Controller
                                         'alumni_last_name' => $feedbackResponse->alumni->last_name,
                                         'gender' => $feedbackResponse->alumni->gender,
                                         'graduation_year' => $feedbackResponse->alumni->graduation_year,
+                                        'date_of_birth' => $feedbackResponse->alumni->date_of_birth,
                                         'major' => $feedbackResponse->alumni->major,
                                         'response_text' => $questionResponse ? $questionResponse->response_text : null,
                                         'option_text' => optional($questionResponse->surveyOption)->option_text,
